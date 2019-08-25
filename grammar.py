@@ -10,6 +10,8 @@ import numpy as np
 from collections import defaultdict, Counter
 from nltk.corpus import ptb
 
+from operand import Operand, FloatOperand, GaussianMxitureOperand
+
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
@@ -33,12 +35,12 @@ class ContexFreeGrammar(Grammar):
     def __init__(self):
         super(ContexFreeGrammar, self).__init__()
         self.tokens = Field(padding=True, keep_firstk=5)  
-        self.pos_tags = Field()   
         self.phrase_labels = Field()  
+        self.pos_tags = Field()   
         self.brules = Field() # binary rules
         self.urules = Field() # unary rules
         self.lrules = Field() # lexicon rules
-        self.indexer_ok = False
+        self.indexer_is_ok = False
 
     def __repr__(self):
         return {
@@ -54,15 +56,14 @@ class ContexFreeGrammar(Grammar):
         fields = self.__repr__()
         s = '\n'
         for k, v in fields.items():
-            s += '\n---{} # {}:\n\n{}\n'.format(k, v.len(), v) 
+            s += '\n--: {} # {}:\n\n{}\n'.format(k, v.len(), v) 
         return s
 
     def build_indexer(self):
         self.tokens.build_index()
         self.pos_tags.build_index()   
         self.phrase_labels.build_index()  
-
-        self.indexer_ok = True
+        self.indexer_is_ok = True
 
     def build_grammar(self): 
         self.brules.build_index()
@@ -90,7 +91,7 @@ class ContexFreeGrammar(Grammar):
                 continue
 
     def read_rules(self, tree):
-        if not self.indexer_ok: 
+        if not self.indexer_is_ok: 
             raise ValueError('Indexers have not been built.')
         for subtree in tree.subtrees(lambda t: t.height() == 2):
             child = subtree[0]
@@ -128,7 +129,7 @@ class Field(object):
         self.counter = Counter() 
         self.idx2tok = {}
         self.tok2idx = {}
-        if padding: # initialization
+        if padding: # global initialization
             for k, v in self._DUMMY.items():
                 self.tok2idx[k] = v
                 self.idx2tok[v] = k
@@ -185,6 +186,8 @@ class Rule(object):
         self.idx = None
         self.pid = pid 
         self.p = None 
+
+        self.fun = None # a function
 
     def index(self):
         self.pid = self.vocab.idx[self.p]

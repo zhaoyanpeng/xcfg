@@ -39,10 +39,11 @@ class PtbCorpus(Corpus):
     _PUNCTUATION_TAGS = ['.', ',', ':', '-LRB-', '-RRB-', '\'\'', '``'] 
     _PUNCTUATION_WORDS = ['.', ',', ':', '-LRB-', '-RRB-', '\'\'', '``', '--', 
                           ';', '-', '?', '!', '...', '-LCB-', '-RCB-'] 
-    _CURRENCY_TAGWORDS = ['#', '$', 'C$', 'A$'] 
+    _CURRENCY_TAGWORDS = ['#', '$', 'C$', 'A$'] # tags: # & $; words: $, C$, and A$  
 
     def __init__(self, root, 
                  read_as_cnf = False,
+                 lowercase_word = False,
                  collapse_unary = False,
                  collapse_number = False,
                  remove_punction = False,
@@ -51,6 +52,7 @@ class PtbCorpus(Corpus):
         self.remove_sublabel = remove_sublabel
         self.remove_punction = remove_punction
         self.collapse_number = collapse_number
+        self.lowercase_word = lowercase_word
         self.collapse_unary = collapse_unary
         self.read_as_cnf = read_as_cnf
 
@@ -79,36 +81,54 @@ class PtbCorpus(Corpus):
             len(self.train_fids), len(self.test_fids), len(self.dev_fids)))
 
     def statistics(self):
-        def remove_punction(tree):
+        def remove_punction(tree, tags_kept):
             for subtree in tree.subtrees():
                 for idx, child in enumerate(subtree):
                     if isinstance(child, str): continue
-                    if all(tag not in self._WORD_TAGS for leaf, tag in child.pos()):
+                    if all(tag not in tags_kept for leaf, tag in child.pos()):
                         del subtree[idx]
+        def reduce_label(tree):
+            for subtree in tree.subtrees():
+                labels = subtree.label().split('+')
+                if len(labels) > 2:
+                    new_label = '{}+{}'.format(labels[0], labels[-1])
+                    subtree.set_label(new_label) 
         def process_tree(tree):
             if self.remove_punction:
                 cnt = 0
-                while not all([tag in self._WORD_TAGS for _, tag in tree.pos()]):
-                    remove_punction(tree)
+                tags_kept = self._WORD_TAGS + self._CURRENCY_TAGWORDS 
+                while not all([tag in tags_kept for _, tag in tree.pos()]):
+                    remove_punction(tree, tags_kept)
                     cnt += 1
                     if cnt > 10: assert False
-            if self.collapse_number:
+            if self.collapse_number or self.lowercase_word:
                 for subtree in tree.subtrees(lambda t: t.height() == 2):
                     child = subtree[0]
                     assert isinstance(child, str)
+                    if self.lowercase_word:
+                        subtree[0] = child.strip().lower()
+                    if not self.collapse_number:
+                        continue
                     if subtree.label() == 'CD' and re.match(self._RE_IS_A_NUM, child):
                         subtree[0] = self._COLLPASED_NUMBER
             if self.read_as_cnf:
                 tree.chomsky_normal_form(horzMarkov=0)
             if self.collapse_unary:
                 tree.collapse_unary(collapsePOS=True)
+
+            reduce_label(tree) # unary chain may be long and sparse
+
             return tree
         def tree_statistics(fids, grammar): 
             # build indexer
             for fid in tqdm(fids):
                 trees = ptb.parsed_sents(fid)
                 for tree in tqdm(trees):
+                    #print(tree)
+                    #print()
                     tree = process_tree(tree)
+                    #print(tree)
+                    #sys.exit(0)
                     grammar.read_trees(tree) 
             grammar.build_indexer() 
             # extract rules
@@ -128,11 +148,12 @@ class PtbCorpus(Corpus):
 
 if __name__ == '__main__': 
     root = '/disk/scratch1/s1847450/data/data_lveg/Data.Prd/root/' 
-    root = '/disk/scratch1/s1847450/data/ptb.mrg/wsj' 
+    #root = '/disk/scratch1/s1847450/data/ptb.mrg/wsj' 
     ptb_corpus = PtbCorpus(root, 
-        read_as_cnf=True, 
-        collapse_number=True,
-        remove_punction=True,
-        collapse_unary=True) 
+        read_as_cnf = True, 
+        collapse_number = True,
+        remove_punction = True,
+        lowercase_word = True, 
+        collapse_unary = True) 
     ptb_corpus.statistics()
     pass
