@@ -10,11 +10,12 @@ import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
 from nltk.corpus import ptb
+from nltk.corpus import BracketParseCorpusReader, LazyCorpusLoader
 
 from grammar import ContexFreeGrammar 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
-
+logging.basicConfig(level = logging.INFO)
 
 class Corpus(object):
     def __init__(self, root):
@@ -41,7 +42,7 @@ class PtbCorpus(Corpus):
                           ';', '-', '?', '!', '...', '-LCB-', '-RCB-'] 
     _CURRENCY_TAGWORDS = ['#', '$', 'C$', 'A$'] # tags: # & $; words: $, C$, and A$  
 
-    def __init__(self, root, 
+    def __init__(self, root, reader,
                  read_as_cnf = False,
                  lowercase_word = False,
                  collapse_unary = False,
@@ -55,6 +56,7 @@ class PtbCorpus(Corpus):
         self.lowercase_word = lowercase_word
         self.collapse_unary = collapse_unary
         self.read_as_cnf = read_as_cnf
+        self.reader = reader
 
         self.train_fids = []
         self.test_fids = []
@@ -122,7 +124,7 @@ class PtbCorpus(Corpus):
         def tree_statistics(fids, grammar): 
             # build indexer
             for fid in tqdm(fids):
-                trees = ptb.parsed_sents(fid)
+                trees = self.reader.parsed_sents(fid)
                 for tree in tqdm(trees):
                     #print(tree)
                     #print()
@@ -133,27 +135,39 @@ class PtbCorpus(Corpus):
             grammar.build_indexer() 
             # extract rules
             for fid in tqdm(fids):
-                trees = ptb.parsed_sents(fid)
+                trees = self.reader.parsed_sents(fid)
                 for tree in tqdm(trees):
                     tree = process_tree(tree)
                     grammar.read_rules(tree) 
             grammar.build_grammar() 
 
         grammar = ContexFreeGrammar()
-        tree_statistics(self.train_fids[:10], grammar)
+        tree_statistics(self.train_fids[:], grammar)
         print(grammar)
         #data_statistics(self.test_fids, grammar, False)
         #data_statistics(self.dev_fids, grammar, False)
         
 
 if __name__ == '__main__': 
+    """
+    root = '/disk/scratch1/s1847450/data/Data.Prd/ctb_dir/' 
+    ctb = BracketParseCorpusReader(root, r'(?!\.).*\.mrg')
+    ctb_corpus = PtbCorpus(root, ctb,
+        read_as_cnf = True, 
+        collapse_number = False,
+        remove_punction = False,
+        lowercase_word = False, 
+        collapse_unary = True) 
+    ctb_corpus.statistics()
+    """
+
     root = '/disk/scratch1/s1847450/data/data_lveg/Data.Prd/root/' 
-    #root = '/disk/scratch1/s1847450/data/ptb.mrg/wsj' 
-    ptb_corpus = PtbCorpus(root, 
+    root = '/disk/scratch1/s1847450/data/ptb.mrg/wsj' 
+    ptb_corpus = PtbCorpus(root, ptb, 
         read_as_cnf = True, 
         collapse_number = True,
         remove_punction = True,
         lowercase_word = True, 
         collapse_unary = True) 
     ptb_corpus.statistics()
-    pass
+
