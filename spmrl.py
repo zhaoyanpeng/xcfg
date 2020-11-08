@@ -15,6 +15,7 @@ from nltk import Tree
 
 from corpus import Corpus
 from grammar import ContexFreeGrammar 
+from constant import STRIPPED_TAGS
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 #logging.basicConfig(level = logging.INFO)
@@ -43,7 +44,6 @@ def remove_morph_feature(tree):
     return out 
 
 def remove_morph_feature_io(ifile, ofile):
-    # build indexer
     trees = ptb.parsed_sents(ifile)
     with open(ofile, 'w') as fw:
         for tree in tqdm(trees):
@@ -79,6 +79,77 @@ def main_remove_morph_feature():
             pathlib.Path(oroot).mkdir(parents=True, exist_ok=True) 
             ofile = oroot + name  
             remove_morph_feature_io(ifile, ofile)
+
+def del_tags(tree, word_tags):    
+    for sub in tree.subtrees():
+        for n, child in enumerate(sub):
+            if isinstance(child, str):
+                continue
+            v = all_tags(child, word_tags)
+            v = [not x for x in v]
+            if all(v):
+                del sub[n]
+
+def all_tags(tree, word_tags):
+    v = []
+    for _, tag in tree.pos():
+        label = tag.strip()
+        if not label.startswith("-"):
+            label = re.split("\=|\+|\-|\_", label)[0] 
+        v.append(label not in word_tags)
+    return v
+
+def remove_punct(tree, word_tags):
+    c = 0
+    while not all(all_tags(tree, word_tags)):
+        del_tags(tree, word_tags)
+        c += 1
+        if c > 10:
+            assert False
+    out = tree.pformat(margin=sys.maxsize).strip()          
+    # remove (X ), i.e., zero-length spans
+    while re.search('\(([a-zA-Z0-9]{1,})((\-|\=|\+|\_)[a-zA-Z0-9]*)*\s{1,}\)', out) is not None:
+        out = re.sub('\(([a-zA-Z0-9]{1,})((\-|\=|\+|\_)[a-zA-Z0-9]*)*\s{1,}\)', '', out)
+    out = out.replace(' )', ')')
+    out = re.sub('\s{2,}', ' ', out)
+    return out
+
+def remove_punct_io(ifile, ofile, word_tags):
+    trees = ptb.parsed_sents(ifile)
+    with open(ofile, 'w') as fw:
+        i = 0 
+        empty_lines = []
+        for tree in tqdm(trees):
+            i += 1
+            tree_str = remove_punct(tree, word_tags)
+            #print(tree_str)
+            if tree_str.strip() == "":
+                empty_lines.append(i)
+                continue
+            fw.write(tree_str + '\n')
+            #sys.exit(0)
+    return empty_lines
+
+def main_remove_punct():
+    LANGS = ("ENGLISH", "CHINESE", "BASQUE", "GERMAN", "FRENCH", "HEBREW", "HUNGARIAN", "KOREAN", "POLISH", "SWEDISH") 
+    root = "/home/s1847450/data/spmrl2014/"
+
+    datasets = ["train", "valid", "test"]
+    
+    for lang in LANGS:
+        if False and lang != "GERMAN":
+            continue
+        tags = STRIPPED_TAGS[lang]
+        print('processing {}...will remove {}'.format(lang, tags))
+        lang = lang.lower()
+        for dset in datasets:
+            read_f = root + "spmrl.punct/{}-{}.txt".format(lang, dset) 
+            save_f = root + "spmrl.clean/{}-{}.txt".format(lang, dset)
+            empty_lines = remove_punct_io(read_f, save_f, tags)
+            print(empty_lines)
+            #break
+        break
+    pass
 
 class SpmrlCorpus(Corpus):
 
@@ -117,6 +188,8 @@ class SpmrlCorpus(Corpus):
             return fids
         # train/test/dev
         proot = self.root + 'train/'
+        if not pathlib.Path(proot).exists():
+            proot = self.root + 'train5k' 
         self.train_fids += read_file_list(proot)
         proot = self.root + 'test/'
         self.test_fids += read_file_list(proot)
@@ -126,6 +199,7 @@ class SpmrlCorpus(Corpus):
             len(self.train_fids), len(self.test_fids), len(self.dev_fids)))
 
     def statistics(self):
+        chain_rule_lengths = defaultdict(int)
         def remove_punction(tree, tags_kept):
             for subtree in tree.subtrees():
                 for idx, child in enumerate(subtree):
@@ -135,10 +209,10 @@ class SpmrlCorpus(Corpus):
         def reduce_label(tree):
             for subtree in tree.subtrees():
                 labels = subtree.label().split('+')
+                chain_rule_lengths[len(labels) - 1] += 1
                 if len(labels) > 2:
                     new_label = '{}+{}'.format(labels[0], labels[-1])
                     subtree.set_label(new_label) 
-             
         def process_tree(tree):
             if self.remove_punction:
                 cnt = 0
@@ -155,7 +229,6 @@ class SpmrlCorpus(Corpus):
                         subtree[0] = child.strip().lower()
                     if not self.collapse_number:
                         continue
-                    #if subtree.label() == 'CD' and re.match(self._RE_IS_A_NUM, child):
                     if re.match(self._RE_IS_A_NUM, child):
                         subtree[0] = self._COLLPASED_NUMBER
             if self.read_as_cnf:
@@ -163,7 +236,7 @@ class SpmrlCorpus(Corpus):
             if self.collapse_unary:
                 tree.collapse_unary(collapsePOS=True)
             
-            #reduce_label(tree) # unary chain may be long and sparse
+            reduce_label(tree) # unary chain may be long and sparse
 
             return tree
 
@@ -188,27 +261,28 @@ class SpmrlCorpus(Corpus):
             grammar.build_grammar() 
 
         grammar = ContexFreeGrammar()
-        #tree_statistics(self.train_fids[:10], grammar)
+        tree_statistics(self.train_fids[:], grammar)
         #tree_statistics(self.test_fids, grammar, False)
-        tree_statistics(self.dev_fids, grammar)
+        #tree_statistics(self.dev_fids, grammar)
+        print(chain_rule_lengths)
         print(grammar)
         
 
 if __name__ == '__main__': 
 
     #main_remove_morph_feature()
-    
-    #sys.exit(0) 
 
-    lang = 'GERMAN_SPMRL'
-    root = '/disk/scratch1/s1847450/data/spmrl2014/SPMRL/{}/proc/ptb/'.format(lang)
+    #print(STRIPPED_TAGS)
+    main_remove_punct()
+    sys.exit(0)
+
+    lang = 'SWEDISH_SPMRL'
+    root = '/disk/scratch1/s1847450/data/spmrl2014/SPMRL/{}/greg/ptb/'.format(lang)
     ptb_corpus = SpmrlCorpus(root, 
         read_as_cnf = True, 
         collapse_number = True,
         remove_punction = False,
         lowercase_word = True, 
-        collapse_unary = False) 
+        collapse_unary = True) 
     ptb_corpus.statistics()
-
-
 
