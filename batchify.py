@@ -102,6 +102,44 @@ def get_nonbinary_spans(actions, SHIFT = 0, REDUCE = 1):
     assert(num_shift == num_reduce + 1)
     return spans, binary_actions, nonbinary_actions
 
+def get_nonbinary_spans_label(actions, SHIFT = 0, REDUCE = 1):
+    spans = []
+    stack = []
+    pointer = 0
+    binary_actions = []
+    num_shift = 0
+    num_reduce = 0
+    for action in actions:
+        if action == "SHIFT":
+            stack.append((pointer, pointer))
+            pointer += 1
+            binary_actions.append(SHIFT)
+            num_shift += 1
+        elif action[:3] == 'NT(':
+            label = "(" + action.split("(")[1][:-1]
+            stack.append(label)
+        elif action == "REDUCE":
+            right = stack.pop()
+            left = right
+            n = 1
+            while stack[-1][0] is not '(':
+                left = stack.pop()
+                n += 1
+            span = (left[0], right[1], stack[-1][1:])
+            if left[0] != right[1]:
+                spans.append(span)
+            stack.pop()
+            stack.append(span)
+            while n > 1:
+                n -= 1
+                binary_actions.append(REDUCE)        
+                num_reduce += 1
+        else:
+            assert False  
+    assert(len(stack) == 1)
+    assert(num_shift == num_reduce + 1)
+    return spans, binary_actions
+
 def is_next_open_bracket(line, start_idx):
     for char in line[(start_idx + 1):]:
         if char == '(':
