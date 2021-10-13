@@ -1,12 +1,15 @@
 # XCFGs
 
-Aiming at unifying all extensions of context-free grammars (XCFGs). **X** stands for weighted, (compound) probabilistic, and neural extensions, etc.
+Aiming at unifying all extensions of context-free grammars (XCFGs). **X** stands for weighted, (compound) probabilistic,
+and neural extensions, etc. Currently only the data preprocessing module has been implemented though.
+
+**News:** Parallel Chinese-English data is supported.
 
 ## Data
 
 The repo handles [WSJ](https://catalog.ldc.upenn.edu/LDC99T42), [CTB](https://catalog.ldc.upenn.edu/LDC2005T01), and [SPMRL](https://dokufarm.phil.hhu.de/spmrl2014/). Have a look at `treebank.py`.
 
-If you are looking for the data used in [C-PCFGs](https://zhaoyanpeng.github.io/files/An%20Empirical%20Study%20of%20Compound%20PCFGs.pdf). Follow the instructions in `treebank.py` and put all outputs in the same folder, let us say `./data.punct`. The script only removes morphology features and creates data splits. To remove punctuation we will need `clean_tb.py`. For example, I used `python clean_tb.py ./data.punct ./data.clean`. All the cleaned treebanks will reside in `/data.clean`.  Then simply execute the command `./batchify.sh ./data.clean/`, you will have all the data needed to reproduce the results in [C-PCFGs](https://zhaoyanpeng.github.io/files/An%20Empirical%20Study%20of%20Compound%20PCFGs.pdf). Feel free to change parameters in `batchify.sh` if you want to use a different batch size or vocabulary size.
+If you are looking for the data used in [C-PCFGs](https://arxiv.org/abs/2103.02298). Follow the instructions in `treebank.py` and put all outputs in the same folder, let us say `./data.punct`. The script only removes morphology features and creates data splits. To remove punctuation we will need `clean_tb.py`. For example, I used `python clean_tb.py ./data.punct ./data.clean`. All the cleaned treebanks will reside in `/data.clean`.  Then simply execute the command `./batchify.sh ./data.clean/`, you will have all the data needed to reproduce the results in [C-PCFGs](https://arxiv.org/abs/2103.02298). Feel free to change parameters in `batchify.sh` if you want to use a different batch size or vocabulary size.
 
 ## Evaluation
 To ease evaluation I represent a gold tree as a tuple:
@@ -18,7 +21,7 @@ If you have followed the instructions in the last section, this command `./binar
 
 ### Trivial baselines
 
-Even for trivial baselines, e.g., left- and right-branching trees, you may find different F1 numbers in literature on grammar induction, partly because the authors used (slightly) different procedures for data preprocessing. To encourage truly fair comparison I also released a standard procedure `baseline.py`. Hopefully, this will help with the situation. It may be a bit hard to read as the script lacks code comments. Will update soon!
+Even for trivial baselines, e.g., left- and right-branching trees, you may find different F1 numbers in literature on grammar induction, partly because the authors used (slightly) different procedures for data preprocessing. *To encourage truly fair comparison I also released a standard procedure `baseline.py`.* Hopefully, this will help with the situation.
 
 | Model | WSJ | CTB | Basque | German | French | Hebrew | Hungarian | Korean | Polish | Swedish |
 |:-:|-:|-:|-:|-:|-:|-:|-:|-:|-:|-:|
@@ -42,21 +45,24 @@ Below is a comparison of several cirtical training / evaluation settings of rece
 | [CT](https://www.aclweb.org/anthology/2020.emnlp-main.389) | &check; |  |  | RoBERTa |  |  | WSJ |  |
 | [S-DIORA](https://www.aclweb.org/anthology/2020.emnlp-main.392) | &check; |  |  | ELMo |  |  | WSJ |  |
 | [VC-PCFG](https://www.aclweb.org/anthology/2020.emnlp-main.354) | &check; | &check; | &check; | RAW | &check; |  | MSCOCO |  |
-| [C-PCFG (Zhao 2020)](https://zhaoyanpeng.github.io/files/An%20Empirical%20Study%20of%20Compound%20PCFGs.pdf) | &check; | &check; | &check; | RAW | &check; |  | WSJ / CTB / SPMRL |  |
+| [C-PCFG (Zhao 2020)](https://arxiv.org/abs/2103.02298) | &check; | &check; | &check; | RAW | &check; |  | WSJ / CTB / SPMRL |  |
 
 
 ## Citing XCFGs
 
-If you use XCFGs in your research or wish to refer to the results in [C-PCFGs](https://zhaoyanpeng.github.io/files/An%20Empirical%20Study%20of%20Compound%20PCFGs.pdf), please use the following BibTeX entry.
+If you use XCFGs in your research or wish to refer to the results in [C-PCFGs](https://arxiv.org/abs/2103.02298), please use the following BibTeX entry.
 ```
-@article{zhao2020xcfg,
-  author = {Zhao, Yanpeng},
-  title  = {An Empirical Study of Compound PCFGs},
-  journal= {https://github.com/zhaoyanpeng/cpcfg},
-  url    = {https://github.com/zhaoyanpeng/cpcfg},
-  year   = {2020}
+@inproceedings{zhao-titov-2021-empirical,
+    title = "An Empirical Study of Compound {PCFG}s",
+    author = "Zhao, Yanpeng and Titov, Ivan",
+    booktitle = "Proceedings of the Second Workshop on Domain Adaptation for NLP",
+    month = apr,
+    year = "2021",
+    address = "Kyiv, Ukraine",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.adaptnlp-1.17",
+    pages = "166--171",
 }
-
 ```
 ## Acknowledgements
 `batchify.py` is borrowed from [C-PCFGs](https://github.com/harvardnlp/compound-pcfg).

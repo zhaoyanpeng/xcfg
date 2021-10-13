@@ -38,3 +38,8 @@ __pycache__
 
 .coverage
 .pytest_cache/
+
+# sensitive or large files
+log
+*.out
+outputs
