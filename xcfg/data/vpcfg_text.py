@@ -152,11 +152,11 @@ def flickr_make_split():
     
 if __name__ == '__main__':
     """ expect directory hierarchy like this: 
-        data/
+        vpcfg/
         ├── flickr
         └── mscoco
     """
-    #root_caps = "./data/" #
+    #root_caps = "./vpcfg/" #
 
     # download the Benepar, only need to run once
     #init_parser()

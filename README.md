@@ -3,7 +3,9 @@
 Aiming at unifying all extensions of context-free grammars (XCFGs). **X** stands for weighted, (compound) probabilistic,
 and neural extensions, etc. Currently only the data preprocessing module has been implemented though.
 
-**News:** Parallel Chinese-English data is supported.
+**Update (06/02/2022):** Parse MSCOCO and Flickr30k captions, create data splits, and encode images for [VC-PCFG](https://github.com/zhaoyanpeng/vpcfg).
+
+**Update (03/10/2021):** Parallel Chinese-English data is supported.
 
 ## Data
 
