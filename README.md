@@ -3,13 +3,15 @@
 Aiming at unifying all extensions of context-free grammars (XCFGs). **X** stands for weighted, (compound) probabilistic,
 and neural extensions, etc. Currently only the data preprocessing module has been implemented though.
 
+**Update (08/06/2023):** Support [Brown Corpus](https://catalog.ldc.upenn.edu/LDC99T42) and [English Web Treebank](https://catalog.ldc.upenn.edu/LDC2012T13) that are used in this [study](https://aclanthology.org/2023.findings-emnlp.530/).
+
 **Update (06/02/2022):** Parse MSCOCO and Flickr30k captions, create data splits, and encode images for [VC-PCFG](https://github.com/zhaoyanpeng/vpcfg).
 
 **Update (03/10/2021):** Parallel Chinese-English data is supported.
 
 ## Data
 
-The repo handles [WSJ](https://catalog.ldc.upenn.edu/LDC99T42), [CTB](https://catalog.ldc.upenn.edu/LDC2005T01), and [SPMRL](https://dokufarm.phil.hhu.de/spmrl2014/). Have a look at `treebank.py`.
+The repo handles [WSJ](https://catalog.ldc.upenn.edu/LDC99T42), [CTB](https://catalog.ldc.upenn.edu/LDC2005T01), [SPMRL](https://dokufarm.phil.hhu.de/spmrl2014/), [Brown Corpus](https://catalog.ldc.upenn.edu/LDC99T42), and [English Web Treebank](https://catalog.ldc.upenn.edu/LDC2012T13). Have a look at `treebank.py`.
 
 If you are looking for the data used in [C-PCFGs](https://arxiv.org/abs/2103.02298). Follow the instructions in `treebank.py` and put all outputs in the same folder, let us say `./data.punct`. The script only removes morphology features and creates data splits. To remove punctuation we will need `clean_tb.py`. For example, I used `python clean_tb.py ./data.punct ./data.clean`. All the cleaned treebanks will reside in `/data.clean`.  Then simply execute the command `./batchify.sh ./data.clean/`, you will have all the data needed to reproduce the results in [C-PCFGs](https://arxiv.org/abs/2103.02298). Feel free to change parameters in `batchify.sh` if you want to use a different batch size or vocabulary size.
 
@@ -53,6 +55,17 @@ Below is a comparison of several cirtical training / evaluation settings of rece
 ## Citing XCFGs
 
 If you use XCFGs in your research or wish to refer to the results in [C-PCFGs](https://arxiv.org/abs/2103.02298), please use the following BibTeX entry.
+```
+@inproceedings{zhao-titov-2023-transferability,
+    title = "On the Transferability of Visually Grounded {PCFGs}",
+    author = "Zhao, Yanpeng  and Titov, Ivan",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2023",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+}
+```
 ```
 @inproceedings{zhao-titov-2021-empirical,
     title = "An Empirical Study of Compound {PCFG}s",
